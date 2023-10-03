@@ -89,12 +89,12 @@ filestat(struct file *f, uint64 addr)
 {
   struct proc *p = myproc();
   struct stat st;
-  
+
   if(f->type == FD_INODE || f->type == FD_DEVICE){
     ilock(f->ip);
     stati(f->ip, &st);
     iunlock(f->ip);
-    if(copyout(p->pagetable, addr, (char *)&st, sizeof(st)) < 0)
+    if(copyout(p->pigtable, addr, (char *)&st, sizeof(st)) < 0)
       return -1;
     return 0;
   }
@@ -179,4 +179,3 @@ filewrite(struct file *f, uint64 addr, int n)
 
   return ret;
 }
-

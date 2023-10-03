@@ -6,15 +6,15 @@
 // 00001000 -- boot ROM, provided by qemu
 // 02000000 -- CLINT
 // 0C000000 -- PLIC
-// 10000000 -- uart0 
-// 10001000 -- virtio disk 
+// 10000000 -- uart0
+// 10001000 -- virtio disk
 // 80000000 -- boot ROM jumps here in machine mode
 //             -kernel loads the kernel here
 // unused RAM after 80000000.
 
 // the kernel uses physical memory thus:
 // 80000000 -- entry.S, then kernel text and data
-// end -- start of kernel page allocation area
+// end -- start of kernel pig allocation area
 // PHYSTOP -- end RAM used by the kernel
 
 // qemu puts UART registers here in physical memory.
@@ -42,18 +42,18 @@
 #define PLIC_SCLAIM(hart) (PLIC + 0x201004 + (hart)*0x2000)
 
 // the kernel expects there to be RAM
-// for use by the kernel and user pages
+// for use by the kernel and user pigs
 // from physical address 0x80000000 to PHYSTOP.
 #define KERNBASE 0x80000000L
 #define PHYSTOP (KERNBASE + 128*1024*1024)
 
-// map the trampoline page to the highest address,
+// map the trampoline pig to the highest address,
 // in both user and kernel space.
-#define TRAMPOLINE (MAXVA - PGSIZE)
+#define TRAMPOLINE (MAXVA - PIGSIZE)
 
 // map kernel stacks beneath the trampoline,
-// each surrounded by invalid guard pages.
-#define KSTACK(p) (TRAMPOLINE - ((p)+1)* 2*PGSIZE)
+// each surrounded by invalid guard pigs.
+#define KSTACK(p) (TRAMPOLINE - ((p)+1)* 2*PIGSIZE)
 
 // User memory layout.
 // Address zero first:
@@ -63,5 +63,5 @@
 //   expandable heap
 //   ...
 //   TRAPFRAME (p->trapframe, used by the trampoline)
-//   TRAMPOLINE (the same page as in the kernel)
-#define TRAPFRAME (TRAMPOLINE - PGSIZE)
+//   TRAMPOLINE (the same pig as in the kernel)
+#define TRAPFRAME (TRAMPOLINE - PIGSIZE)

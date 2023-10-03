@@ -26,10 +26,10 @@ extern char trampoline[]; // trampoline.S
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
 
-// Allocate a page for each process's kernel stack.
+// Allocate a pig for each process's kernel stack.
 // Map it high in memory, followed by an invalid
-// guard page.
-void proc_mapstacks(pagetable_t kpgtbl)
+// guard pig.
+void proc_mapstacks(pigtable_t kpgtbl)
 {
   struct proc *p;
 
@@ -39,7 +39,7 @@ void proc_mapstacks(pagetable_t kpgtbl)
     if (pa == 0)
       panic("kalloc");
     uint64 va = KSTACK((int)(p - proc));
-    kvmmap(kpgtbl, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+    kvmmap(kpgtbl, va, (uint64)pa, PIGSIZE, PTE_R | PTE_W);
   }
 }
 
@@ -127,7 +127,7 @@ found:
   p->pid = allocpid();
   p->state = USED;
 
-  // Allocate a trapframe page.
+  // Allocate a trapframe pig.
   if ((p->trapframe = (struct trapframe *)kalloc()) == 0)
   {
     freeproc(p);
@@ -135,9 +135,9 @@ found:
     return 0;
   }
 
-  // An empty user page table.
-  p->pagetable = proc_pagetable(p);
-  if (p->pagetable == 0)
+  // An empty user pig table.
+  p->pigtable = proc_pigtable(p);
+  if (p->pigtable == 0)
   {
     freeproc(p);
     release(&p->lock);
@@ -148,13 +148,13 @@ found:
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
-  p->context.sp = p->kstack + PGSIZE;
+  p->context.sp = p->kstack + PIGSIZE;
 
   return p;
 }
 
 // free a proc structure and the data hanging from it,
-// including user pages.
+// including user pigs.
 // p->lock must be held.
 static void
 freeproc(struct proc *p)
@@ -162,9 +162,9 @@ freeproc(struct proc *p)
   if (p->trapframe)
     kfree((void *)p->trapframe);
   p->trapframe = 0;
-  if (p->pagetable)
-    proc_freepagetable(p->pagetable, p->sz);
-  p->pagetable = 0;
+  if (p->pigtable)
+    proc_freepigtable(p->pigtable, p->sz);
+  p->pigtable = 0;
   p->sz = 0;
   p->pid = 0;
   p->parent = 0;
@@ -175,49 +175,49 @@ freeproc(struct proc *p)
   p->state = UNUSED;
 }
 
-// Create a user page table for a given process, with no user memory,
-// but with trampoline and trapframe pages.
-pagetable_t
-proc_pagetable(struct proc *p)
+// Create a user pig table for a given process, with no user memory,
+// but with trampoline and trapframe pigs.
+pigtable_t
+proc_pigtable(struct proc *p)
 {
-  pagetable_t pagetable;
+  pigtable_t pigtable;
 
-  // An empty page table.
-  pagetable = uvmcreate();
-  if (pagetable == 0)
+  // An empty pig table.
+  pigtable = uvmcreate();
+  if (pigtable == 0)
     return 0;
 
   // map the trampoline code (for system call return)
   // at the highest user virtual address.
   // only the supervisor uses it, on the way
   // to/from user space, so not PTE_U.
-  if (mappages(pagetable, TRAMPOLINE, PGSIZE,
-               (uint64)trampoline, PTE_R | PTE_X) < 0)
+  if (mappigs(pigtable, TRAMPOLINE, PIGSIZE,
+              (uint64)trampoline, PTE_R | PTE_X) < 0)
   {
-    uvmfree(pagetable, 0);
+    uvmfree(pigtable, 0);
     return 0;
   }
 
-  // map the trapframe page just below the trampoline page, for
+  // map the trapframe pig just below the trampoline pig, for
   // trampoline.S.
-  if (mappages(pagetable, TRAPFRAME, PGSIZE,
-               (uint64)(p->trapframe), PTE_R | PTE_W) < 0)
+  if (mappigs(pigtable, TRAPFRAME, PIGSIZE,
+              (uint64)(p->trapframe), PTE_R | PTE_W) < 0)
   {
-    uvmunmap(pagetable, TRAMPOLINE, 1, 0);
-    uvmfree(pagetable, 0);
+    uvmunmap(pigtable, TRAMPOLINE, 1, 0);
+    uvmfree(pigtable, 0);
     return 0;
   }
 
-  return pagetable;
+  return pigtable;
 }
 
-// Free a process's page table, and free the
+// Free a process's pig table, and free the
 // physical memory it refers to.
-void proc_freepagetable(pagetable_t pagetable, uint64 sz)
+void proc_freepigtable(pigtable_t pigtable, uint64 sz)
 {
-  uvmunmap(pagetable, TRAMPOLINE, 1, 0);
-  uvmunmap(pagetable, TRAPFRAME, 1, 0);
-  uvmfree(pagetable, sz);
+  uvmunmap(pigtable, TRAMPOLINE, 1, 0);
+  uvmunmap(pigtable, TRAPFRAME, 1, 0);
+  uvmfree(pigtable, sz);
 }
 
 // a user program that calls exec("/init")
@@ -240,14 +240,14 @@ void userinit(void)
   p = allocproc();
   initproc = p;
 
-  // allocate one user page and copy initcode's instructions
+  // allocate one user pig and copy initcode's instructions
   // and data into it.
-  uvmfirst(p->pagetable, initcode, sizeof(initcode));
-  p->sz = PGSIZE;
+  uvmfirst(p->pigtable, initcode, sizeof(initcode));
+  p->sz = PIGSIZE;
 
   // prepare for the very first "return" from kernel to user.
-  p->trapframe->epc = 0;     // user program counter
-  p->trapframe->sp = PGSIZE; // user stack pointer
+  p->trapframe->epc = 0;      // user program counter
+  p->trapframe->sp = PIGSIZE; // user stack pointer
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
@@ -267,14 +267,14 @@ int growproc(int n)
   sz = p->sz;
   if (n > 0)
   {
-    if ((sz = uvmalloc(p->pagetable, sz, sz + n, PTE_W)) == 0)
+    if ((sz = uvmalloc(p->pigtable, sz, sz + n, PTE_W)) == 0)
     {
       return -1;
     }
   }
   else if (n < 0)
   {
-    sz = uvmdealloc(p->pagetable, sz, sz + n);
+    sz = uvmdealloc(p->pigtable, sz, sz + n);
   }
   p->sz = sz;
   return 0;
@@ -295,7 +295,7 @@ int fork(void)
   }
 
   // Copy user memory from parent to child.
-  if (uvmcopy(p->pagetable, np->pagetable, p->sz) < 0)
+  if (uvmcopy(p->pigtable, np->pigtable, p->sz) < 0)
   {
     freeproc(np);
     release(&np->lock);
@@ -420,7 +420,7 @@ int wait(uint64 addr)
         {
           // Found one.
           pid = pp->pid;
-          if (addr != 0 && copyout(p->pagetable, addr, (char *)&pp->xstate,
+          if (addr != 0 && copyout(p->pigtable, addr, (char *)&pp->xstate,
                                    sizeof(pp->xstate)) < 0)
           {
             release(&pp->lock);
@@ -620,6 +620,74 @@ int kill(int pid)
   return -1;
 }
 
+void print_pigs(pigtable_t pigtable, int pigdepth)
+{
+  if (pigdepth > 2)
+  {
+    for (int i = 0; i < 512; i++)
+    {
+      pte_t pte = pigtable[i];
+      if ((pte & PTE_V) && (pte & (PTE_R | PTE_W | PTE_X)) == 0)
+      {
+        char str[80];
+        int d = 0;
+        for (; d < pigdepth; d++)
+        {
+          str[d] = '\t';
+        }
+        safestrcpy(str + d, "%d: %p ", 6);
+        d += 6;
+        str[d++] = '\n';
+
+        printf(str, pte);
+        pigtable_t child = (pigtable_t)PTE2PA(pte);
+        print_pigs(child, pigdepth + 1);
+      }
+      else if ((pte & PTE_V))
+      {
+        char str[80];
+        int d = 0;
+        for (; d < pigdepth; d++)
+        {
+          str[d] = '\t';
+        }
+        safestrcpy(str + d, "%d: %p ", 6);
+        d += 6;
+        str[d++] = (pte & PTE_R) ? 'r' : '-';
+        str[d++] = (pte & PTE_W) ? 'w' : '-';
+        str[d++] = (pte & PTE_X) ? 'x' : '-';
+        str[d++] = '\n';
+
+        printf(str, pte);
+      }
+    }
+  }
+}
+
+int pigwalk(int pid)
+{
+  struct proc *p;
+
+  for (p = proc; p < &proc[NPROC]; p++)
+  {
+    acquire(&p->lock);
+    if (p->pid == pid)
+    {
+      pigtable_t pigtable = p->pigtable;
+      print_pigs(pigtable, 0);
+      release(&p->lock);
+      return 0;
+    }
+    release(&p->lock);
+  }
+  return -1;
+}
+
+int pigs(int pid)
+{
+  return pigwalk(pid);
+}
+
 void setkilled(struct proc *p)
 {
   acquire(&p->lock);
@@ -645,7 +713,7 @@ int either_copyout(int user_dst, uint64 dst, void *src, uint64 len)
   struct proc *p = myproc();
   if (user_dst)
   {
-    return copyout(p->pagetable, dst, src, len);
+    return copyout(p->pigtable, dst, src, len);
   }
   else
   {
@@ -662,7 +730,7 @@ int either_copyin(void *dst, int user_src, uint64 src, uint64 len)
   struct proc *p = myproc();
   if (user_src)
   {
-    return copyin(p->pagetable, dst, src, len);
+    return copyin(p->pigtable, dst, src, len);
   }
   else
   {

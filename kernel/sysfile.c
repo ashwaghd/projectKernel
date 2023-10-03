@@ -85,7 +85,7 @@ sys_write(void)
   struct file *f;
   int n;
   uint64 p;
-  
+
   argaddr(1, &p);
   argint(2, &n);
   if(argfd(0, 0, &f) < 0)
@@ -412,7 +412,7 @@ sys_chdir(void)
   char path[MAXPATH];
   struct inode *ip;
   struct proc *p = myproc();
-  
+
   begin_op();
   if(argstr(0, path, MAXPATH) < 0 || (ip = namei(path)) == 0){
     end_op();
@@ -457,7 +457,7 @@ sys_exec(void)
     argv[i] = kalloc();
     if(argv[i] == 0)
       goto bad;
-    if(fetchstr(uarg, argv[i], PGSIZE) < 0)
+    if(fetchstr(uarg, argv[i], PIGSIZE) < 0)
       goto bad;
   }
 
@@ -493,8 +493,8 @@ sys_pipe(void)
     fileclose(wf);
     return -1;
   }
-  if(copyout(p->pagetable, fdarray, (char*)&fd0, sizeof(fd0)) < 0 ||
-     copyout(p->pagetable, fdarray+sizeof(fd0), (char *)&fd1, sizeof(fd1)) < 0){
+  if(copyout(p->pigtable, fdarray, (char*)&fd0, sizeof(fd0)) < 0 ||
+     copyout(p->pigtable, fdarray+sizeof(fd0), (char *)&fd1, sizeof(fd1)) < 0){
     p->ofile[fd0] = 0;
     p->ofile[fd1] = 0;
     fileclose(rf);

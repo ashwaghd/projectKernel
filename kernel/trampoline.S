@@ -2,12 +2,12 @@
         # low-level code to handle traps from user space into
         # the kernel, and returns from kernel to user.
         #
-        # the kernel maps the page holding this code
+        # the kernel maps the pig holding this code
         # at the same virtual address (TRAMPOLINE)
         # in user and kernel space so that it continues
-        # to work when it switches page tables.
-        # kernel.ld causes this code to start at 
-        # a page boundary.
+        # to work when it switches pig tables.
+        # kernel.ld causes this code to start at
+        # a pig boundary.
         #
 
 #include "riscv.h"
@@ -18,12 +18,12 @@
 trampoline:
 .align 4
 .globl uservec
-uservec:    
+uservec:
 	#
         # trap.c sets stvec to point here, so
         # traps from user space start here,
         # in supervisor mode, but with a
-        # user page table.
+        # user pig table.
         #
 
         # save user a0 in sscratch so
@@ -32,9 +32,9 @@ uservec:
 
         # each process has a separate p->trapframe memory area,
         # but it's mapped to the same virtual address
-        # (TRAPFRAME) in every process's user page table.
+        # (TRAPFRAME) in every process's user pig table.
         li a0, TRAPFRAME
-        
+
         # save the user registers in TRAPFRAME
         sd ra, 40(a0)
         sd sp, 48(a0)
@@ -81,14 +81,14 @@ uservec:
         ld t0, 16(a0)
 
 
-        # fetch the kernel page table address, from p->trapframe->kernel_satp.
+        # fetch the kernel pig table address, from p->trapframe->kernel_satp.
         ld t1, 0(a0)
 
         # wait for any previous memory operations to complete, so that
-        # they use the user page table.
+        # they use the user pig table.
         sfence.vma zero, zero
 
-        # install the kernel page table.
+        # install the kernel pig table.
         csrw satp, t1
 
         # flush now-stale user entries from the TLB.
@@ -99,12 +99,12 @@ uservec:
 
 .globl userret
 userret:
-        # userret(pagetable)
+        # userret(pigtable)
         # called by usertrapret() in trap.c to
         # switch from kernel to user.
-        # a0: user page table, for satp.
+        # a0: user pig table, for satp.
 
-        # switch to the user page table.
+        # switch to the user pig table.
         sfence.vma zero, zero
         csrw satp, a0
         sfence.vma zero, zero
@@ -145,7 +145,7 @@ userret:
 
 	# restore user a0
         ld a0, 112(a0)
-        
+
         # return to user mode and user pc.
         # usertrapret() set up sstatus and sepc.
         sret

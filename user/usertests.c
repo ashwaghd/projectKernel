@@ -36,7 +36,7 @@ copyin(char *s)
 
   for(int ai = 0; ai < 2; ai++){
     uint64 addr = addrs[ai];
-    
+
     int fd = open("copyin1", O_CREATE|O_WRONLY);
     if(fd < 0){
       printf("open(copyin1) failed\n");
@@ -49,13 +49,13 @@ copyin(char *s)
     }
     close(fd);
     unlink("copyin1");
-    
+
     n = write(1, (char*)addr, 8192);
     if(n > 0){
       printf("write(1, %p, 8192) returned %d, not -1 or 0\n", addr, n);
       exit(1);
     }
-    
+
     int fds[2];
     if(pipe(fds) < 0){
       printf("pipe() failed\n");
@@ -141,7 +141,7 @@ copyinstr2(char *s)
   for(int i = 0; i < MAXPATH; i++)
     b[i] = 'x';
   b[MAXPATH] = '\0';
-  
+
   int ret = unlink(b);
   if(ret != -1){
     printf("unlink(%s) returned %d, not -1\n", b, ret);
@@ -173,10 +173,10 @@ copyinstr2(char *s)
     exit(1);
   }
   if(pid == 0){
-    static char big[PGSIZE+1];
-    for(int i = 0; i < PGSIZE; i++)
+    static char big[PIGSIZE+1];
+    for(int i = 0; i < PIGSIZE; i++)
       big[i] = 'x';
-    big[PGSIZE] = '\0';
+    big[PIGSIZE] = '\0';
     char *args2[] = { big, big, big, 0 };
     ret = exec("echo", args2);
     if(ret != -1){
@@ -194,17 +194,17 @@ copyinstr2(char *s)
   }
 }
 
-// what if a string argument crosses over the end of last user page?
+// what if a string argument crosses over the end of last user pig?
 void
 copyinstr3(char *s)
 {
   sbrk(8192);
   uint64 top = (uint64) sbrk(0);
-  if((top % PGSIZE) != 0){
-    sbrk(PGSIZE - (top % PGSIZE));
+  if((top % PIGSIZE) != 0){
+    sbrk(PIGSIZE - (top % PIGSIZE));
   }
   top = (uint64) sbrk(0);
-  if(top % PGSIZE){
+  if(top % PIGSIZE){
     printf("oops\n");
     exit(1);
   }
@@ -244,14 +244,14 @@ void
 rwsbrk()
 {
   int fd, n;
-  
+
   uint64 a = (uint64) sbrk(8192);
 
   if(a == 0xffffffffffffffffLL) {
     printf("sbrk(rwsbrk) failed\n");
     exit(1);
   }
-  
+
   if ((uint64) sbrk(-8192) ==  0xffffffffffffffffLL) {
     printf("sbrk(rwsbrk) shrink failed\n");
     exit(1);
@@ -281,7 +281,7 @@ rwsbrk()
     exit(1);
   }
   close(fd);
-  
+
   exit(0);
 }
 
@@ -290,7 +290,7 @@ void
 truncate1(char *s)
 {
   char buf[32];
-  
+
   unlink("truncfile");
   int fd1 = open("truncfile", O_CREATE|O_WRONLY|O_TRUNC);
   write(fd1, "abcd", 4);
@@ -319,7 +319,7 @@ truncate1(char *s)
     printf("%s: read %d bytes, wanted 0\n", s, n);
     exit(1);
   }
-  
+
   write(fd1, "abcdef", 6);
 
   n = read(fd3, buf, sizeof(buf));
@@ -372,7 +372,7 @@ truncate3(char *s)
   int pid, xstatus;
 
   close(open("truncfile", O_CREATE|O_TRUNC|O_WRONLY));
-  
+
   pid = fork();
   if(pid < 0){
     printf("%s: fork failed\n", s);
@@ -418,7 +418,7 @@ truncate3(char *s)
   unlink("truncfile");
   exit(xstatus);
 }
-  
+
 
 // does chdir() call iput(p->cwd) in a transaction?
 void
@@ -540,7 +540,7 @@ writetest(char *s)
   int fd;
   int i;
   enum { N=100, SZ=10 };
-  
+
   fd = open("small", O_CREATE|O_RDWR);
   if(fd < 0){
     printf("%s: error: creat small failed!\n", s);
@@ -738,7 +738,7 @@ pipe1(char *s)
   int fds[2], pid, xstatus;
   int seq, i, n, cc, total;
   enum { N=5, SZ=1033 };
-  
+
   if(pipe(fds) != 0){
     printf("%s: pipe() failed\n", s);
     exit(1);
@@ -791,7 +791,7 @@ void
 killstatus(char *s)
 {
   int xst;
-  
+
   for(int i = 0; i < 100; i++){
     int pid1 = fork();
     if(pid1 < 0){
@@ -962,7 +962,7 @@ void
 forkfork(char *s)
 {
   enum { N=2 };
-  
+
   for(int i = 0; i < N; i++){
     int pid = fork();
     if(pid < 0){
@@ -1078,7 +1078,7 @@ mem(char *s)
     int xstatus;
     wait(&xstatus);
     if(xstatus == -1){
-      // probably page fault, so might be lazy lab,
+      // probably pig fault, so might be lazy lab,
       // so OK.
       exit(0);
     }
@@ -1119,7 +1119,7 @@ sharedfd(char *s)
     if(xstatus != 0)
       exit(xstatus);
   }
-  
+
   close(fd);
   fd = open("sharedfd", 0);
   if(fd < 0){
@@ -1154,7 +1154,7 @@ fourfiles(char *s)
   char *names[] = { "f0", "f1", "f2", "f3" };
   char *fname;
   enum { N=12, NCHILD=4, SZ=500 };
-  
+
   for(pi = 0; pi < NCHILD; pi++){
     fname = names[pi];
     unlink(fname);
@@ -2012,14 +2012,14 @@ sbrkbasic(char *s)
       // it's OK if this fails.
       exit(0);
     }
-    
+
     for(b = a; b < a+TOOMUCH; b += 4096){
       *b = 99;
     }
-    
+
     // we should not get here! either sbrk(TOOMUCH)
     // should have failed, or (with lazy allocation)
-    // a pagefault should have killed this process.
+    // a pigfault should have killed this process.
     exit(1);
   }
 
@@ -2029,7 +2029,7 @@ sbrkbasic(char *s)
     exit(1);
   }
 
-  // can one sbrk() less than a page?
+  // can one sbrk() less than a pig?
   a = sbrk(0);
   for(i = 0; i < 5000; i++){
     b = sbrk(1);
@@ -2075,7 +2075,7 @@ sbrkmuch(char *s)
     exit(1);
   }
 
-  // touch each page to make sure it exists.
+  // touch each pig to make sure it exists.
   char *eee = sbrk(0);
   for(char *pp = a; pp < eee; pp += 4096)
     *pp = 1;
@@ -2085,21 +2085,21 @@ sbrkmuch(char *s)
 
   // can one de-allocate?
   a = sbrk(0);
-  c = sbrk(-PGSIZE);
+  c = sbrk(-PIGSIZE);
   if(c == (char*)0xffffffffffffffffL){
     printf("%s: sbrk could not deallocate\n", s);
     exit(1);
   }
   c = sbrk(0);
-  if(c != a - PGSIZE){
+  if(c != a - PIGSIZE){
     printf("%s: sbrk deallocation produced wrong address, a %x c %x\n", s, a, c);
     exit(1);
   }
 
-  // can one re-allocate that page?
+  // can one re-allocate that pig?
   a = sbrk(0);
-  c = sbrk(PGSIZE);
-  if(c != a || sbrk(0) != a + PGSIZE){
+  c = sbrk(PIGSIZE);
+  if(c != a || sbrk(0) != a + PIGSIZE){
     printf("%s: sbrk re-allocation failed, a %x c %x\n", s, a, c);
     exit(1);
   }
@@ -2177,7 +2177,7 @@ sbrkfail(char *s)
   char *c, *a;
   int pids[10];
   int pid;
- 
+
   if(pipe(fds) != 0){
     printf("%s: pipe() failed\n", s);
     exit(1);
@@ -2194,9 +2194,9 @@ sbrkfail(char *s)
       read(fds[0], &scratch, 1);
   }
 
-  // if those failed allocations freed up the pages they did allocate,
+  // if those failed allocations freed up the pigs they did allocate,
   // we'll be able to allocate here
-  c = sbrk(PGSIZE);
+  c = sbrk(PIGSIZE);
   for(i = 0; i < sizeof(pids)/sizeof(pids[0]); i++){
     if(pids[i] == -1)
       continue;
@@ -2208,7 +2208,7 @@ sbrkfail(char *s)
     exit(1);
   }
 
-  // test running fork with the above allocated page 
+  // test running fork with the above allocated pig
   pid = fork();
   if(pid < 0){
     printf("%s: fork failed\n", s);
@@ -2216,12 +2216,12 @@ sbrkfail(char *s)
   }
   if(pid == 0){
     // allocate a lot of memory.
-    // this should produce a page fault,
+    // this should produce a pig fault,
     // and thus not complete.
     a = sbrk(0);
     sbrk(10*BIG);
     int n = 0;
-    for (i = 0; i < 10*BIG; i += PGSIZE) {
+    for (i = 0; i < 10*BIG; i += PIGSIZE) {
       n += *(a+i);
     }
     // print n so the compiler doesn't optimize away
@@ -2234,7 +2234,7 @@ sbrkfail(char *s)
     exit(1);
 }
 
-  
+
 // test reads/writes from/to allocated memory
 void
 sbrkarg(char *s)
@@ -2242,25 +2242,25 @@ sbrkarg(char *s)
   char *a;
   int fd, n;
 
-  a = sbrk(PGSIZE);
+  a = sbrk(PIGSIZE);
   fd = open("sbrk", O_CREATE|O_WRONLY);
   unlink("sbrk");
   if(fd < 0)  {
     printf("%s: open sbrk failed\n", s);
     exit(1);
   }
-  if ((n = write(fd, a, PGSIZE)) < 0) {
+  if ((n = write(fd, a, PIGSIZE)) < 0) {
     printf("%s: write sbrk failed\n", s);
     exit(1);
   }
   close(fd);
 
   // test writes to allocated memory
-  a = sbrk(PGSIZE);
+  a = sbrk(PIGSIZE);
   if(pipe((int *) a) != 0){
     printf("%s: pipe() failed\n", s);
     exit(1);
-  } 
+  }
 }
 
 void
@@ -2270,7 +2270,7 @@ validatetest(char *s)
   uint64 p;
 
   hi = 1100*1024;
-  for(p = 0; p <= (uint)hi; p += PGSIZE){
+  for(p = 0; p <= (uint)hi; p += PIGSIZE){
     // try to crash the kernel by passing in a bad string pointer
     if(link("nosuchfile", (char*)p) != -1){
       printf("%s: link should not succeed\n", s);
@@ -2295,7 +2295,7 @@ bsstest(char *s)
 }
 
 // does exec return an error if the arguments
-// are larger than a page? or does it write
+// are larger than a pig? or does it write
 // below the stack and wreck the instructions/data?
 void
 bigargtest(char *s)
@@ -2318,7 +2318,7 @@ bigargtest(char *s)
     printf("%s: bigargtest: fork failed\n", s);
     exit(1);
   }
-  
+
   wait(&xstatus);
   if(xstatus != 0)
     exit(xstatus);
@@ -2395,18 +2395,18 @@ void argptest(char *s)
   close(fd);
 }
 
-// check that there's an invalid page beneath
+// check that there's an invalid pig beneath
 // the user stack, to catch stack overflow.
 void
 stacktest(char *s)
 {
   int pid;
   int xstatus;
-  
+
   pid = fork();
   if(pid == 0) {
     char *sp = (char *) r_sp();
-    sp -= PGSIZE;
+    sp -= PIGSIZE;
     // the *sp should cause a trap.
     printf("%s: stacktest: read below stack %p\n", s, *sp);
     exit(1);
@@ -2427,7 +2427,7 @@ textwrite(char *s)
 {
   int pid;
   int xstatus;
-  
+
   pid = fork();
   if(pid == 0) {
     volatile int *addr = (int *) 0;
@@ -2445,8 +2445,8 @@ textwrite(char *s)
 }
 
 // regression test. copyin(), copyout(), and copyinstr() used to cast
-// the virtual page address to uint, which (with certain wild system
-// call arguments) resulted in a kernel page faults.
+// the virtual pig address to uint, which (with certain wild system
+// call arguments) resulted in a kernel pig faults.
 void *big = (void*) 0xeaeb0b5b00002f5e;
 void
 pgbug(char *s)
@@ -2460,8 +2460,8 @@ pgbug(char *s)
 }
 
 // regression test. does the kernel panic if a process sbrk()s its
-// size to be less than a page, or zero, or reduces the break by an
-// amount too small to cause a page to be freed?
+// size to be less than a pig, or zero, or reduces the break by an
+// amount too small to cause a pig to be freed?
 void
 sbrkbugs(char *s)
 {
@@ -2476,7 +2476,7 @@ sbrkbugs(char *s)
     // would not adjust p->sz correctly in this case,
     // causing exit() to panic.
     sbrk(-sz);
-    // user page fault here.
+    // user pig fault here.
     exit(0);
   }
   wait(0);
@@ -2489,8 +2489,8 @@ sbrkbugs(char *s)
   if(pid == 0){
     int sz = (uint64) sbrk(0);
     // set the break to somewhere in the very first
-    // page; there used to be a bug that would incorrectly
-    // free the first page.
+    // pig; there used to be a bug that would incorrectly
+    // free the first pig.
     sbrk(-(sz - 3500));
     exit(0);
   }
@@ -2502,11 +2502,11 @@ sbrkbugs(char *s)
     exit(1);
   }
   if(pid == 0){
-    // set the break in the middle of a page.
+    // set the break in the middle of a pig.
     sbrk((10*4096 + 2048) - (uint64)sbrk(0));
 
     // reduce the break a bit, but not enough to
-    // cause a page to be freed. this used to cause
+    // cause a pig to be freed. this used to cause
     // a panic.
     sbrk(-10);
 
@@ -2517,9 +2517,9 @@ sbrkbugs(char *s)
   exit(0);
 }
 
-// if process size was somewhat more than a page boundary, and then
-// shrunk to be somewhat less than that page boundary, can the kernel
-// still copyin() from addresses in the last page?
+// if process size was somewhat more than a pig boundary, and then
+// shrunk to be somewhat less than that pig boundary, can the kernel
+// still copyin() from addresses in the last pig?
 void
 sbrklast(char *s)
 {
@@ -2567,7 +2567,7 @@ badarg(char *s)
     argv[1] = 0;
     exec("echo", argv);
   }
-  
+
   exit(0);
 }
 
@@ -2691,7 +2691,7 @@ manywrites(char *s)
 {
   int nchildren = 4;
   int howmany = 30; // increase to look for deadlock
-  
+
   for(int ci = 0; ci < nchildren; ci++){
     int pid = fork();
     if(pid < 0){
@@ -2705,7 +2705,7 @@ manywrites(char *s)
       name[1] = 'a' + ci;
       name[2] = '\0';
       unlink(name);
-      
+
       for(int iters = 0; iters < howmany; iters++){
         for(int i = 0; i < ci+1; i++){
           int fd = open(name, O_CREATE | O_RDWR);
@@ -2747,7 +2747,7 @@ void
 badwrite(char *s)
 {
   int assumed_free = 600;
-  
+
   unlink("junk");
   for(int i = 0; i < assumed_free; i++){
     int fd = open("junk", O_CREATE|O_WRONLY);
@@ -2795,11 +2795,11 @@ execout(char *s)
         *(char*)(a + 4096 - 1) = 1;
       }
 
-      // free a few pages, in order to let exec() make some
+      // free a few pigs, in order to let exec() make some
       // progress.
       for(int i = 0; i < avail; i++)
         sbrk(-4096);
-      
+
       close(1);
       char *args[] = { "echo", "x", 0 };
       exec("echo", args);
@@ -2820,7 +2820,7 @@ diskfull(char *s)
   int done = 0;
 
   unlink("diskfulldir");
-  
+
   for(fi = 0; done == 0; fi++){
     char name[32];
     name[0] = 'b';
@@ -2931,7 +2931,7 @@ struct test slowtests[] = {
   {execout, "execout"},
   {diskfull, "diskfull"},
   {outofinodes, "outofinodes"},
-    
+
   { 0, 0},
 };
 
@@ -2956,7 +2956,7 @@ run(void f(char *), char *s) {
     exit(0);
   } else {
     wait(&xstatus);
-    if(xstatus != 0) 
+    if(xstatus != 0)
       printf("FAILED\n");
     else
       printf("OK\n");
@@ -2979,8 +2979,8 @@ runtests(struct test *tests, char *justone) {
 
 
 //
-// use sbrk() to count how many free physical memory pages there are.
-// touches the pages to force allocation.
+// use sbrk() to count how many free physical memory pigs there are.
+// touches the pigs to force allocation.
 // because out of memory with lazy allocation results in the process
 // taking a fault and being killed, fork and report back.
 //
@@ -2993,7 +2993,7 @@ countfree()
     printf("pipe() failed in countfree()\n");
     exit(1);
   }
-  
+
   int pid = fork();
 
   if(pid < 0){
@@ -3003,7 +3003,7 @@ countfree()
 
   if(pid == 0){
     close(fds[0]);
-    
+
     while(1){
       uint64 a = (uint64) sbrk(4096);
       if(a == 0xffffffffffffffff){
@@ -3013,7 +3013,7 @@ countfree()
       // modify the memory to make sure it's really allocated.
       *(char *)(a + 4096 - 1) = 1;
 
-      // report back one more page.
+      // report back one more pig.
       if(write(fds[1], "x", 1) != 1){
         printf("write() failed in countfree()\n");
         exit(1);
@@ -3040,7 +3040,7 @@ countfree()
 
   close(fds[0]);
   wait((int*)0);
-  
+
   return n;
 }
 
@@ -3065,7 +3065,7 @@ drivetests(int quick, int continuous, char *justone) {
       }
     }
     if((free1 = countfree()) < free0) {
-      printf("FAILED -- lost some free pages %d (out of %d)\n", free1, free0);
+      printf("FAILED -- lost some free pigs %d (out of %d)\n", free1, free0);
       if(continuous != 2) {
         return 1;
       }

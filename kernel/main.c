@@ -16,8 +16,8 @@ main()
     printf("\n");
     printf("xv6 kernel is booting\n");
     printf("\n");
-    kinit();         // physical page allocator
-    kvminit();       // create kernel page table
+    kinit();         // physical pig allocator
+    kvminit();       // create kernel pig table
     kvminithart();   // turn on paging
     procinit();      // process table
     trapinit();      // trap vectors
@@ -41,5 +41,5 @@ main()
     plicinithart();   // ask PLIC for device interrupts
   }
 
-  scheduler();        
+  scheduler();
 }
