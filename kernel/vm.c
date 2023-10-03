@@ -151,9 +151,9 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
   a = PGROUNDDOWN(va);
   last = PGROUNDDOWN(va + size - 1);
   for(;;){
-    if((pte = walk(pagetable, a, 1)) == 0)
-      return -1;
-    if(*pte & PTE_V)
+    if((pte = walk(pagetable, a, 1)) == 0) // Walk the table. Did we reach the end?
+      return -1; // Yes, so we fail.
+    if(*pte & PTE_V) // No? 
       panic("mappages: remap");
     *pte = PA2PTE(pa) | perm | PTE_V;
     if(a == last)
