@@ -703,6 +703,11 @@ void print_pigs(pigtable_t pigtable, int pigdepth)
         str[d++] = (pte & PTE_R) ? 'r' : '-';
         str[d++] = (pte & PTE_W) ? 'w' : '-';
         str[d++] = (pte & PTE_X) ? 'x' : '-';
+        if (!(pte & PTE_U))
+        {
+          safestrcpy(str + d, "   (kernel)", 12);
+          d += 11;
+        }
         str[d++] = '\n';
         str[d++] = '\0';
 
