@@ -620,9 +620,11 @@ int kill(int pid)
   return -1;
 }
 
+static char digits[] = "0123456789abcdef";
+
 void print_pigs(pigtable_t pigtable, int pigdepth)
 {
-  if (pigdepth > 2)
+  if (pigdepth <= 2)
   {
     for (int i = 0; i < 512; i++)
     {
@@ -631,14 +633,38 @@ void print_pigs(pigtable_t pigtable, int pigdepth)
       {
         char str[80];
         int d = 0;
-        for (; d < pigdepth; d++)
+        for (int j = 2 - pigdepth; j > 0; j--)
         {
-          str[d] = '\t';
+          str[d++] = '\n';
         }
-        safestrcpy(str + d, "%d: %p ", 6);
-        d += 6;
-        str[d++] = '\n';
+        for (int j = 0; j < pigdepth; j++)
+        {
+          str[d++] = '\t';
+        }
 
+        char buf[16];
+        int ii = 0;
+        uint x = i;
+        int strlen = 0;
+        do
+        {
+          strlen++;
+          buf[ii++] = digits[x % 10];
+        } while ((x /= 10) != 0);
+
+        for (int j = 0; j < (3 - strlen); j++)
+        {
+          str[d++] = '0';
+        }
+        for (int j = 1; j <= strlen; j++)
+        {
+          str[d++] = buf[strlen - j];
+        }
+
+        safestrcpy(str + d, ": %p ", 6);
+        d += 5;
+        str[d++] = '\n';
+        str[d++] = '\0';
         printf(str, pte);
         pigtable_t child = (pigtable_t)PTE2PA(pte);
         print_pigs(child, pigdepth + 1);
@@ -651,12 +677,34 @@ void print_pigs(pigtable_t pigtable, int pigdepth)
         {
           str[d] = '\t';
         }
-        safestrcpy(str + d, "%d: %p ", 6);
-        d += 6;
+
+        char buf[16];
+        int ii = 0;
+        uint x = i;
+        int strlen = 0;
+        do
+        {
+          strlen++;
+          buf[ii++] = digits[x % 10];
+        } while ((x /= 10) != 0);
+        for (int j = 0; j < (3 - strlen); j++)
+        {
+          str[d++] = '0';
+        }
+        for (int j = 1; j <= strlen; j++)
+        {
+          str[d++] = buf[strlen - j];
+        }
+
+        safestrcpy(str + d, ": %p ", 6);
+        d += 5;
+        str[d++] = ' ';
+        str[d++] = ' ';
         str[d++] = (pte & PTE_R) ? 'r' : '-';
         str[d++] = (pte & PTE_W) ? 'w' : '-';
         str[d++] = (pte & PTE_X) ? 'x' : '-';
         str[d++] = '\n';
+        str[d++] = '\0';
 
         printf(str, pte);
       }
@@ -667,7 +715,11 @@ void print_pigs(pigtable_t pigtable, int pigdepth)
 int pigwalk(int pid)
 {
   struct proc *p;
-
+  if (pid == 0)
+  {
+    printf("invalid pig: %d\n", pid);
+    return -1;
+  }
   for (p = proc; p < &proc[NPROC]; p++)
   {
     acquire(&p->lock);
@@ -680,6 +732,7 @@ int pigwalk(int pid)
     }
     release(&p->lock);
   }
+  printf("invalid pig: %d\n", pid);
   return -1;
 }
 

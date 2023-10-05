@@ -97,5 +97,5 @@ uint64 sys_pigs(void)
   int pid;
 
   argint(0, &pid);
-  return pigwalk(pid);
+  return pigs(pid);
 }
